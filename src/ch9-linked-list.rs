@@ -65,4 +65,80 @@ fn main() {
 	        _ => false
 	    }
 	}
+
+	// List of generics
+	enum List<T> {
+	    Cons(T, Box<List<T>>),
+	    Nil
+	}
+
+	// Updating the prepend definition
+	fn prepend<T>(xs: List<T>, value: T) -> List<T> {
+    	Cons(value, box xs)
+	}
+
+	// Prepending using the type inference
+	let mut xs = Nil; // Unknown type! This is a `List<T>`, but `T` can be anything.
+	xs = prepend(xs, 10i); // Here the compiler infers `xs`'s type as `List<int>`.
+	xs = prepend(xs, 15i);
+	xs = prepend(xs, 20i);
+
+	// Which is equivalent to using the following type annotations
+	let mut xs: List<int> = Nil::<int>;
+	xs = prepend::<int>(xs, 10);
+	xs = prepend::<int>(xs, 15);
+	xs = prepend::<int>(xs, 20);
+
+/*	Note: In declarations, the language uses Type<T, U, V> to describe a list 
+	of type parameters, but expressions use identifier::<T, U, V>, to disambiguate the < operator. */
+
+/*	To implement an eq function for our list that manipulates generics. We can add a trait bound 
+	on the PartialEq trait to require that the type implement the == operator. 
+	Two more ref annotations need to be added to avoid attempting to move out the element types*/
+
+	fn eq<T: PartialEq>(xs: &List<T>, ys: &List<T>) -> bool {
+	    // Match on the next node in both lists.
+	    match (xs, ys) {
+	        // If we have reached the end of both lists, they are equal.
+	        (&Nil, &Nil) => true,
+	        // If the current elements of both lists are equal, keep going.
+	        (&Cons(ref x, box ref next_xs), &Cons(ref y, box ref next_ys))
+	                if x == y => eq(next_xs, next_ys),
+	        // If the current elements are not equal, the lists are not equal.
+	        _ => false
+	    }
+	}
+
+	let xs = Cons('c', box Cons('a', box Cons('t', box Nil)));
+	let ys = Cons('c', box Cons('a', box Cons('t', box Nil)));
+	assert!(eq(&xs, &ys));
+
+	// Implementing the PartialEq trait through our list in order to get the == and != operators
+	impl<T: PartialEq> PartialEq for List<T> {
+	    fn eq(&self, ys: &List<T>) -> bool {
+	        // Match on the next node in both lists.
+	        // In a method, the self parameter refers to an instance of the type we're implementing on.
+	        match (self, ys) {
+	            // If we have reached the end of both lists, they are equal.
+	            (&Nil, &Nil) => true,
+	            // If the current elements of both lists are equal, keep going.
+	            (&Cons(ref x, box ref next_xs), &Cons(ref y, box ref next_ys))
+	                    if x == y => next_xs == next_ys,
+	            // If the current elements are not equal, the lists are not equal.
+	            _ => false
+	        }
+	    }
+	}
+
+	let xs = Cons(5i, box Cons(10i, box Nil));
+	let ys = Cons(5i, box Cons(10i, box Nil));
+	// The methods below are part of the PartialEq trait,
+	// which we implemented on our linked list.
+	assert!(xs.eq(&ys));
+	assert!(!xs.ne(&ys));
+
+	// The PartialEq trait also allows us to use the shorthand infix operators.
+	assert!(xs == ys);    // `xs == ys` is short for `xs.eq(&ys)`
+	assert!(!(xs != ys)); // `xs != ys` is short for `xs.ne(&ys)`
+
 }

@@ -1,6 +1,6 @@
 /*Methods are like functions except that they always begin with a special argument, called self, 
 which has the type of the method's receiver. The self argument is like this in C++ and many other 
-anguages. Methods are called with dot notation, as in my_vec.len().
+languages. Methods are called with dot notation, as in my_vec.len().
 
 Implementations, written with the impl keyword, can define methods on most Rust types, 
 including structs and enums. As an example, let's define a draw method on our Shape enum.*/

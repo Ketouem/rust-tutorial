@@ -51,4 +51,30 @@ fn radius(shape: Shape) -> Option<f64> {
 is a fancy name for a simple idea: generate a separate copy of each generic function at each call site, 
 a copy that is specialized to the argument types and can thus be optimized specifically for them.*/
 
-// -- Traits
+// -- Traits --
+
+/*Traits are Rust's most powerful tool for writing polymorphic code. Java developers will see them as 
+similar to Java interfaces, and Haskellers will notice their similarities to type classes. Rust's traits 
+give us a way to express bounded polymorphism: by limiting the set of possible types that a type parameter 
+could refer to, they expand the number of operations we can safely perform on arguments of that type.
+
+Ex: The clone method is not defined for values of every type. One reason is user-defined destructors: 
+copying a value of a type that has a destructor could result in the destructor running multiple times. 
+Therefore, values of types that have destructors cannot be copied unless we explicitly implement clone for them.
+
+This complicates handling of generic functions. If we have a function with a type parameter T, can we copy values 
+of type T inside that function? In Rust, we can't, and if we try to run the following code the compiler will complain.*/
+
+// This does not compile
+fn head_bad<T>(v: &[T]) -> T {
+    v[0] // error: copying a non-copyable value
+}
+
+/*However, we can tell the compiler that the head function is only for copyable types. In Rust, copyable types 
+are those that implement the Clone trait. We can then explicitly create a second copy of the value we are 
+returning by calling the clone method:*/
+
+// This does
+fn head<T: Clone>(v: &[T]) -> T {
+    v[0].clone()
+}

@@ -78,3 +78,40 @@ returning by calling the clone method:*/
 fn head<T: Clone>(v: &[T]) -> T {
     v[0].clone()
 }
+
+/*The bounded type parameter T: Clone says that head can be called on an argument of type &[T] for any T, so long 
+as there is an implementation of the Clone trait for T. When instantiating a generic function, we can only instantiate 
+it with types that implement the correct trait, so we could not apply head to a vector whose elements are of some type 
+that does not implement Clone.
+
+While most traits can be defined and implemented by user code, three traits are automatically derived and implemented 
+for all applicable types by the compiler, and may not be overridden:
+
+-- Send - Sendable types. Types are sendable unless they contain references.
+
+-- Share - Types that are threadsafe. These are types that are safe to be used across several threads with 
+   access to a &T pointer. Mutex<T> is an example of a sharable type with internal mutable data.
+
+-- 'static - Non-borrowed types. These are types that do not contain any data whose lifetime is bound to a 
+   particular stack frame. These are types that do not contain any references, or types where the only contained 
+   references have the 'static lifetime.
+
+These 3 traits are aka 'kinds'.
+
+Additionally, the Drop trait is used to define destructors. This trait provides one method called drop, 
+which is automatically called when a value of the type that implements this trait is destroyed, either because the value 
+went out of scope or because the garbage collector reclaimed it.*/
+
+struct TimeBomb {
+    explosivity: uint
+}
+
+impl Drop for TimeBomb {
+    fn drop(&mut self) {
+        for _ in range(0, self.explosivity) {
+            println!("blam!");
+        }
+    }
+}
+
+// -- Declaring and implementing traits --

@@ -115,3 +115,63 @@ impl Drop for TimeBomb {
 }
 
 // -- Declaring and implementing traits --
+
+/* At its simplest, a trait is a set of zero or more method signatures. For example, we could declare the trait Printable 
+for things that can be printed to the console, with a single method signature:*/
+
+trait Printable {
+    fn print(&self);
+}
+
+/* We say that the Printable trait provides a print method with the given signature. This means that we can call print on an 
+argument of any type that implements the Printable trait.
+
+Traits may be implemented for specific types with impls. An impl for a particular trait gives an implementation of the methods 
+that trait provides. For instance, the following impls of Printable for int and String give implementations of the print method.*/
+
+impl Printable for int {
+    fn print(&self) { println!("{}", *self) }
+}
+
+impl Printable for String {
+    fn print(&self) { println!("{}", *self) }
+}
+
+// Methods defined in an impl for a trait may be called just like any other method, using dot notation, as in 1.print().
+
+// --  Default method implementations in trait definitions --
+
+/* Sometimes, a method that a trait provides will have the same implementation for most or all of the types that implement that 
+trait. For instance, suppose that we wanted bools and f32s to be printable, and that we wanted the implementation of print for those 
+types to be exactly as it is for int, above:*/
+
+impl Printable for f32 {
+    fn print(&self) { println!("{}", *self) }
+}
+
+impl Printable for bool {
+    fn print(&self) { println!("{}", *self) }
+}
+
+/* This works fine, but we've now repeated the same definition of print in three places. Instead of doing that, we can simply 
+include the definition of print right in the trait definition, instead of just giving its signature. That is, we can write the following:*/
+
+extern crate debug;
+
+trait Printable {
+    // Default method implementation
+    fn print(&self) { println!("{:?}", *self) }
+}
+
+impl Printable for int {}
+
+impl Printable for String {
+    fn print(&self) { println!("{}", *self) }
+}
+
+impl Printable for bool {}
+
+impl Printable for f32 {}
+
+/* Here, the impls of Printable for int, bool, and f32 don't need to provide an implementation of print, because in the absence of a 
+specific implementation, Rust just uses the default method provided in the trait definition.*/

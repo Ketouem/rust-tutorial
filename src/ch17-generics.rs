@@ -175,3 +175,58 @@ impl Printable for f32 {}
 
 /* Here, the impls of Printable for int, bool, and f32 don't need to provide an implementation of print, because in the absence of a 
 specific implementation, Rust just uses the default method provided in the trait definition.*/
+
+// -- Type-parameterized traits --
+
+/* Traits may be parameterized by type variables. For example, a trait for generalized sequence types might look like the following:*/
+
+trait Seq<T> {
+    fn length(&self) -> uint;
+}
+
+impl<T> Seq<T> for Vec<T> {
+    fn length(&self) -> uint { self.len() }
+}
+
+/* The implementation has to explicitly declare the type parameter that it binds, T, before using it to specify its trait type. 
+Rust requires this declaration because the impl could also, for example, specify an implementation of Seq<int>. 
+The trait type (appearing between impl and for) refers to a type, rather than defining one.
+
+The type parameters bound by a trait are in scope in each of the method declarations. So, re-declaring the type parameter T as an 
+explicit type parameter for length, in either the trait or the impl, would be a compile-time error.
+
+Within a trait definition, Self is a special type that you can think of as a type parameter. An implementation of the trait for any 
+given type T replaces the Self type parameter with T. The following trait describes types that support an equality operation:*/
+
+// In a trait, `self` refers to the self argument.
+// `Self` refers to the type implementing the trait.
+trait PartialEq {
+    fn equals(&self, other: &Self) -> bool;
+}
+
+// In an impl, `self` refers just to the value of the receiver
+impl PartialEq for int {
+    fn equals(&self, other: &int) -> bool { *other == *self }
+}
+
+/* In the trait definition, equals takes a second parameter of type Self. In contrast, in the impl, equals takes a second parameter of type int, 
+only using self as the name of the receiver.*/
+
+/* Just as in type implementations, traits can define standalone (static) methods. These methods are called by prefixing the method name with the 
+trait name and a double colon. The compiler uses type inference to decide which implementation to use.*/
+
+use std::f64::consts::PI;
+trait Shape { fn new(area: f64) -> Self; }
+struct Circle { radius: f64 }
+struct Square { length: f64 }
+
+impl Shape for Circle {
+    fn new(area: f64) -> Circle { Circle { radius: (area / PI).sqrt() } }
+}
+impl Shape for Square {
+    fn new(area: f64) -> Square { Square { length: area.sqrt() } }
+}
+
+let area = 42.5;
+let c: Circle = Shape::new(area);
+let s: Square = Shape::new(area);

@@ -230,3 +230,32 @@ impl Shape for Square {
 let area = 42.5;
 let c: Circle = Shape::new(area);
 let s: Square = Shape::new(area);
+
+// -- Bounded type parameters and static method dispatch --
+
+/* Traits give a language for defining predicates on types, or abstract properties that types can have. We can use this language to define bounds 
+on type parameters, so that we can then operate on generic types.*/
+
+fn print_all<T: Printable>(printable_things: Vec<T>) {
+    for thing in printable_things.iter() {
+        thing.print();
+    }
+}
+
+/* Declaring T as conforming to the Printable trait (as we earlier did with Clone) makes it possible to call methods from that trait on values of 
+type T inside the function. It will also cause a compile-time error when anyone tries to call print_all on a vector whose element type 
+does not have a Printable implementation.
+
+Type parameters can have multiple bounds by separating them with +, as in this version of print_all that copies elements.*/
+
+fn print_all<T: Printable + Clone>(printable_things: Vec<T>) {
+    let mut i = 0;
+    while i < printable_things.len() {
+        let copy_of_thing = printable_things[i].clone();
+        copy_of_thing.print();
+        i += 1;
+    }
+}
+
+/* Method calls to bounded type parameters are statically dispatched, imposing no more overhead than normal function invocation, so are the preferred 
+way to use traits polymorphically.*/

@@ -259,3 +259,129 @@ fn print_all<T: Printable + Clone>(printable_things: Vec<T>) {
 
 /* Method calls to bounded type parameters are statically dispatched, imposing no more overhead than normal function invocation, so are the preferred 
 way to use traits polymorphically.*/
+
+// -- Trait objects and dynamic method dispatch --
+
+/*The above allows us to define functions that polymorphically act on values of a single unknown type that conforms to a given trait. 
+However, consider this function:*/
+
+trait Drawable { fn draw(&self); }
+
+fn draw_all<T: Drawable>(shapes: Vec<T>) {
+    for shape in shapes.iter() { shape.draw(); }
+}
+
+/*You can call that on a vector of circles, or a vector of rectangles (assuming those have suitable Drawable traits defined), 
+but not on a vector containing both circles and rectangles. When such behavior is needed, 
+a trait name can alternately be used as a type, called an object.*/
+
+fn draw_all(shapes: &[Box<Drawable>]) {
+    for shape in shapes.iter() { shape.draw(); }
+}
+
+/*In this example, there is no type parameter. Instead, the Box<Drawable> type denotes any owned box value that implements the Drawable trait. 
+To construct such a value, you use the as operator to cast a value to an object:*/
+
+
+impl Drawable for Circle { fn draw(&self) { /* ... */ } }
+impl Drawable for Rectangle { fn draw(&self) { /* ... */ } }
+
+let c: Box<Circle> = box new_circle();
+let r: Box<Rectangle> = box new_rectangle();
+draw_all([c as Box<Drawable>, r as Box<Drawable>]);
+
+/*Note that, like strings and vectors, objects have dynamic size and may only be referred to via one of the pointer types. Other pointer types work as well. 
+Casts to traits may only be done with compatible pointers so, for example, an &Circle may not be cast to a Box<Drawable>.*/
+
+// An owned object
+let owny: Box<Drawable> = box new_circle() as Box<Drawable>;
+// A borrowed object
+let stacky: &Drawable = &new_circle() as &Drawable;
+
+/*Method calls to trait types are dynamically dispatched. Since the compiler doesn't know specifically which functions to call at compile time, 
+it uses a lookup table (also known as a vtable or dictionary) to select the method to call at runtime.
+
+This usage of traits is similar to Java interfaces.
+
+There are some built-in bounds, such as Send and Sync, which are properties of the components of types. By design, trait objects don't know 
+the exact type of their contents and so the compiler cannot reason about those properties.
+
+You can instruct the compiler, however, that the contents of a trait object must ascribe to a particular bound with a trailing colon (:). 
+These are examples of valid types:*/
+
+trait Foo {}
+trait Bar<T> {}
+
+fn sendable_foo(f: Box<Foo + Send>) { /* ... */ }
+fn sync_bar<T: Sync>(b: &Bar<T> + Sync) { /* ... */ }
+
+/*When no colon is specified (such as the type Box<Foo>), it is inferred that the value ascribes to no bounds. They must be added manually 
+if any bounds are necessary for usage.
+
+Builtin kind bounds can also be specified on closure types in the same way (for example, by writing fn:Send()), and the default behaviours are the same as 
+for traits of the same storage class.*/
+
+// -- Trait inheritance --
+
+/*We can write a trait declaration that inherits from other traits, called supertraits. Types that implement a trait must also implement its supertraits. 
+For example, we can define a Circle trait that inherits from Shape.*/
+
+trait Shape { fn area(&self) -> f64; }
+trait Circle : Shape { fn radius(&self) -> f64; }
+
+// Now, we can implement Circle on a type only if we also implement Shape.
+
+use std::f64::consts::PI;
+struct CircleStruct { center: Point, radius: f64 }
+impl Circle for CircleStruct {
+    fn radius(&self) -> f64 { (self.area() / PI).sqrt() }
+}
+impl Shape for CircleStruct {
+    fn area(&self) -> f64 { PI * square(self.radius) }
+}
+
+/*Notice that methods of Circle can call methods on Shape, as our radius implementation calls the area method.
+In type-parameterized functions, methods of the supertrait may be called on values of subtrait-bound type parameters. 
+Referring to the previous example of trait Circle : Shape:*/
+
+fn radius_times_area<T: Circle>(c: T) -> f64 {
+    // `c` is both a Circle and a Shape
+    c.radius() * c.area()
+}
+
+// Likewise, supertrait methods may also be called on trait objects.
+
+use std::f64::consts::PI;
+
+let concrete = box CircleStruct{center:Point{x:3.0,y:4.0},radius:5.0};
+let mycircle: Box<Circle> = concrete as Box<Circle>;
+let nonsense = mycircle.radius() * mycircle.area();
+
+// -- Deriving implementations for traits --
+
+/*A small number of traits in can have implementations that can be automatically derived. These instances are specified by placing the deriving 
+attribute on a data type declaration. For example, the following will mean that Circle has an implementation for PartialEq and can be used 
+with the equality operators, and that a value of type ABC can be randomly generated and converted to a string:*/
+
+extern crate rand;
+use std::rand::{task_rng, Rng};
+
+#[deriving(PartialEq)]
+struct Circle { radius: f64 }
+
+#[deriving(Rand, Show)]
+enum ABC { A, B, C }
+
+fn main() {
+    // Use the Show trait to print "A, B, C."
+    println!("{}, {}, {}", A, B, C);
+
+    let mut rng = task_rng();
+
+    // Use the Rand trait to generate a random variants.
+    for _ in range(0i, 10) {
+        println!("{}", rng.gen::<ABC>());
+    }
+}
+
+// The full list of derivable traits is PartialEq, Eq, PartialOrd, Ord, Encodable, Decodable, Clone, Hash, Rand, Default, Zero, FromPrimitive and Show.
